@@ -1,0 +1,113 @@
+<style>
+    .leaflet-tooltip.district-label {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    font-weight: bold;
+    color: #333; /* Adjust for visibility */
+    text-shadow: 1px 1px 2px white; /* Makes it stand out on busy maps */
+    font-size: 14px;
+}
+.popup-scroll {
+    max-height: 200px; /* adjust height as needed */
+    overflow-y: auto;
+}
+</style>
+
+<script src="{{ '/assets/lib/leaflet/leaflet.js' | absolute_url }}"></script>
+{% if site.data.theme.map-search == true %}
+<script src="{{ '/assets/lib/leaflet/fuse.min.js' | absolute_url }}"></script>
+<script src="{{ '/assets/lib/leaflet/leaflet.fusesearch.js' | absolute_url }}"></script>
+{% endif %}
+{% if site.data.theme.map-cluster == true %}
+<script src="{{ '/assets/lib/leaflet/leaflet.markercluster.js' | absolute_url }}"></script>
+{% endif %}
+{% if site.data.theme.map-search == true and site.data.theme.map-cluster == true %}
+<script src="{{ '/assets/lib/leaflet/leaflet.markercluster.freezable.js' | absolute_url }}"></script>
+{% endif %}
+<script src="{{ '/assets/js/MiningDistricts_Polygons.js' | relative_url }}"></script>
+<script src="{{ '/assets/js/polygon_test_metadata.js' | relative_url }}"></script>
+
+<script>
+    (function () {
+
+        // Initialize the map
+        var map = L.map('map').setView([46.774080, -109.570761], 7);
+
+        // Base map layers
+        var Esri_WorldStreetMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012'
+        });
+        var Esri_NatGeoWorldMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri &mdash; National Geographic, Esri, DeLorme, NAVTEQ, UNEP-WCMC, USGS, NASA, ESA, METI, NRCAN, GEBCO, NOAA, iPC',
+            maxZoom: 16
+        });
+        var Esri_WorldImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+        });
+
+        var baseMaps = {
+            "Esri World StreetMap": Esri_WorldStreetMap,
+            "Esri National Geo": Esri_NatGeoWorldMap,
+            "Esri Imagery": Esri_WorldImagery
+        };
+        L.control.layers(baseMaps).addTo(map);
+        Esri_WorldStreetMap.addTo(map);
+
+        // Popup for polygons with associated objects
+        function districtPopup(feature, layer) {
+            var districtName = feature.properties.NAME || feature.properties.name || "Unknown District";
+
+            // Find all objects in this district (supporting multiple districts per object)
+            var objectsInDistrict = geojsonData.features.filter(o => {
+                if (!o.properties.district) return false;
+                var districts = o.properties.district.split(/;|,/)
+                    .map(d => d.trim().toLowerCase())
+                    .filter(d => d.length > 0);
+                return districts.includes(districtName.toLowerCase());
+            });
+
+            // Build popup content
+            var popupHTML = `<h3>${districtName}</h3>`;
+            if (objectsInDistrict.length > 0) {
+                popupHTML += `<div class="popup-scroll"><ul>`;
+                objectsInDistrict.forEach(obj => {
+                    const itemUrl = `/items/${obj.properties.objectid}.html`;
+                    const districtList = obj.properties.district || '';
+                    popupHTML += `<li>
+                <strong><a href="${itemUrl}" target="_blank">${obj.properties.title}</a></strong><br>
+            </li>`;
+                });
+                popupHTML += `</ul></div>`;
+            } else {
+                popupHTML += `<p>No related maps found.</p>`;
+            }
+
+            layer.bindPopup(popupHTML);
+        }
+
+        // Add mining district polygons with labels
+        L.geoJson(miningDistricts, {
+            onEachFeature: function (feature, layer) {
+                var districtName = feature.properties.NAME || feature.properties.name || "Unknown District";
+
+                // Bind the popup with the maps
+                districtPopup(feature, layer);
+
+                // Add a permanent label (tooltip) for the district name
+                layer.bindTooltip(districtName, {
+                    permanent: false,
+                    direction: "center",
+                    className: "district-label"
+                });
+            },
+            style: {
+                color: "#ff7800",
+                weight: 2,
+                opacity: 0.65
+            }
+        }).addTo(map);
+
+
+    })();
+</script>
