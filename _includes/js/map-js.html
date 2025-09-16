@@ -4,12 +4,12 @@
     border: none;
     box-shadow: none;
     font-weight: bold;
-    color: #333; /* Adjust for visibility */
-    text-shadow: 1px 1px 2px white; /* Makes it stand out on busy maps */
+    color: #333; 
+    text-shadow: 1px 1px 2px white; 
     font-size: 14px;
 }
 .popup-scroll {
-    max-height: 200px; /* adjust height as needed */
+    max-height: 200px; 
     overflow-y: auto;
 }
 </style>
@@ -94,7 +94,7 @@
                 // Bind the popup with the maps
                 districtPopup(feature, layer);
 
-                // Add a permanent label (tooltip) for the district name
+                // Add label (tooltip) for the district name
                 layer.bindTooltip(districtName, {
                     permanent: false,
                     direction: "center",
