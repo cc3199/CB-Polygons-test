@@ -6,3 +6,5 @@ description,true,true
 subject,true,true
 location,true,false
 mining_district,true,false
+maptype_name,true,false 
+objecttype_name,true,false

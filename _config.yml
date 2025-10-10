@@ -18,16 +18,16 @@ source-code: https://github.com/CollectionBuilder/collectionbuilder-csv
 # SITE SETTINGS
 #
 # title of site appears in banner
-title: CollectionBuilder CSV
+title: Beaverhead County, Montana
 # tagline, a short phrase that will appear throughout the site in the top banner
-tagline: Digital Collection Magic with Static Web Technologies
+tagline: Historic Mining and Geology Maps and Documents
 # description appears in meta tags and other locations
 # this description might appear in search result lists, keep around 160 characters max
-description: "CollectionBuilder-CSV is a template for creating digital collection exhibits using static web technology."
+description: "Historic mining and geology maps and documents from Beaverhead County, Montana, provided by the Montana Bureau of Mines and Geology. This collection includes maps and documents related to the mining history and geological surveys of the region."
 # keywords, a short list of subjects describing the collection, separated by semicolon, to appear in rich markup
-keywords: idaho; history; inland northwest
+keywords: montana; history; inland northwest; mining; geology; maps; documents; beaverhead county
 # creator of the digital collection, to appear in meta tags; we typically use our GitHub usernames but feel free to just use your name
-author: CollectionBuilder
+author: MBMG Data Preservation - Chelsea Pincock
 
 ##########
 # COLLECTION SETTINGS

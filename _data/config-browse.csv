@@ -3,4 +3,4 @@ description,,,true,
 creator,Creator,,,
 subject,,true
 location,,true,,,Location Depicted
-mining_district,Mining District,,,,Mining District
+mining_district,Mining District,true,,,Mining District
