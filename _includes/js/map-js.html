@@ -1,18 +1,26 @@
 <style>
+    .leaflet-popup-content {
+        max-height: 250px;
+        overflow-y: auto !important;
+    }
+
+    .popup-scroll {
+        max-height: 220px;
+        overflow-y: auto;
+        padding-right: 4px;
+    }
+
     .leaflet-tooltip.district-label {
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    font-weight: bold;
-    color: #333; 
-    text-shadow: 1px 1px 2px white; 
-    font-size: 14px;
-}
-.popup-scroll {
-    max-height: 200px; 
-    overflow-y: auto;
-}
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        font-weight: bold;
+        color: #333;
+        text-shadow: 1px 1px 2px white;
+        font-size: 14px;
+    }
 </style>
+
 
 <script src="{{ '/assets/lib/leaflet/leaflet.js' | absolute_url }}"></script>
 {% if site.data.theme.map-search == true %}
@@ -26,88 +34,225 @@
 <script src="{{ '/assets/lib/leaflet/leaflet.markercluster.freezable.js' | absolute_url }}"></script>
 {% endif %}
 <script src="{{ '/assets/js/MiningDistricts_Polygons.js' | relative_url }}"></script>
-<script src="{{ '/assets/js/polygon_test_metadata.js' | relative_url }}"></script>
+<!-- map metadata will be loaded from the Jekyll-generated JSON so it stays in sync with _data CSVs -->
 
 <script>
+    // Fetch the generated geodata and initialize the map after load
     (function () {
+        function initMap() {
+            // Initialize the map
+            var map = L.map('map').setView([46.774080, -109.570761], 7);
 
-        // Initialize the map
-        var map = L.map('map').setView([46.774080, -109.570761], 7);
-
-        // Base map layers
-        var Esri_WorldStreetMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012'
-        });
-        var Esri_NatGeoWorldMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Tiles &copy; Esri &mdash; National Geographic, Esri, DeLorme, NAVTEQ, UNEP-WCMC, USGS, NASA, ESA, METI, NRCAN, GEBCO, NOAA, iPC',
-            maxZoom: 16
-        });
-        var Esri_WorldImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-        });
-
-        var baseMaps = {
-            "Esri World StreetMap": Esri_WorldStreetMap,
-            "Esri National Geo": Esri_NatGeoWorldMap,
-            "Esri Imagery": Esri_WorldImagery
-        };
-        L.control.layers(baseMaps).addTo(map);
-        Esri_WorldStreetMap.addTo(map);
-
-        // Popup for polygons with associated objects
-        function districtPopup(feature, layer) {
-            var districtName = feature.properties.NAME || feature.properties.name || "Unknown District";
-
-            // Find all objects in this district (supporting multiple districts per object)
-            var objectsInDistrict = geojsonData.features.filter(o => {
-                if (!o.properties.district) return false;
-                var districts = o.properties.district.split(/;|,/)
-                    .map(d => d.trim().toLowerCase())
-                    .filter(d => d.length > 0);
-                return districts.includes(districtName.toLowerCase());
+            // Base map layers
+            var Esri_WorldStreetMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012'
+            });
+            var Esri_NatGeoWorldMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri &mdash; National Geographic, Esri, DeLorme, NAVTEQ, UNEP-WCMC, USGS, NASA, ESA, METI, NRCAN, GEBCO, NOAA, iPC',
+                maxZoom: 16
+            });
+            var Esri_WorldImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
             });
 
-            // Build popup content
-            var popupHTML = `<h3>${districtName}</h3>`;
-            if (objectsInDistrict.length > 0) {
-                popupHTML += `<div class="popup-scroll"><ul>`;
-                objectsInDistrict.forEach(obj => {
-                    const itemUrl = `/items/${obj.properties.objectid}.html`;
-                    const districtList = obj.properties.district || '';
-                    popupHTML += `<li>
-                <strong><a href="${itemUrl}" target="_blank">${obj.properties.title}</a></strong><br>
-            </li>`;
-                });
-                popupHTML += `</ul></div>`;
-            } else {
-                popupHTML += `<p>No related maps found.</p>`;
+            var baseMaps = {
+                "Esri World StreetMap": Esri_WorldStreetMap,
+                "Esri National Geo": Esri_NatGeoWorldMap,
+                "Esri Imagery": Esri_WorldImagery
+            };
+            L.control.layers(baseMaps).addTo(map);
+            Esri_WorldStreetMap.addTo(map);
+
+            // helper to convert reference_url or site-root paths to absolute hrefs
+            function toAbsoluteUrl(u) {
+                if (!u) return '#';
+                try {
+                    // already absolute
+                    if (/^https?:\/\//i.test(u)) return u;
+                    // protocol-relative
+                    if (u.indexOf('//') === 0) return window.location.protocol + u;
+                    // root-relative (starts with '/') -> prefix origin
+                    if (u.charAt(0) === '/') return window.location.origin + u;
+                    // otherwise resolve relative to current location
+                    return new URL(u, window.location.href).href;
+                } catch (e) {
+                    return u;
+                }
             }
 
-            layer.bindPopup(popupHTML);
-        }
-
-        // Add mining district polygons with labels
-        L.geoJson(miningDistricts, {
-            onEachFeature: function (feature, layer) {
+            // Popup for polygons with associated objects
+            function districtPopup(feature, layer) {
                 var districtName = feature.properties.NAME || feature.properties.name || "Unknown District";
 
-                // Bind the popup with the maps
-                districtPopup(feature, layer);
 
-                // Add label (tooltip) for the district name
-                layer.bindTooltip(districtName, {
-                    permanent: false,
-                    direction: "center",
-                    className: "district-label"
-                });
-            },
-            style: {
+                // Find all objects in this district (supporting multiple district field names and multiple districts per object)
+                var objectsInDistrict = window.geojsonData && window.geojsonData.features ? window.geojsonData.features.filter(o => {
+                    if (!o.properties) return false;
+                    // support various possible field names coming from CSV or existing JS
+                    var districtField = o.properties.district || o.properties.mining_district || o.properties['mining district'] || o.properties.MiningDistrict || o.properties.miningDistrict;
+                    if (!districtField) return false;
+                    var districts = String(districtField).split(/;|,/)
+                        .map(d => d.trim().toLowerCase())
+                        .filter(d => d.length > 0);
+                    return districts.includes(districtName.toLowerCase());
+                }) : [];
+
+                // Randomize and limit to 5
+                if (objectsInDistrict.length > 5) {
+                    objectsInDistrict = objectsInDistrict
+                        .sort(() => 0.5 - Math.random()) // shuffle array
+                        .slice(0, 5); // keep 5
+                }
+
+                // Build popup content
+                var popupHTML = `<h3 style="margin-top:0;">${districtName}</h3>`;
+                if (objectsInDistrict.length > 0) {
+                    popupHTML += `<ul style="padding-left:15px; margin:0;">`;
+                    objectsInDistrict.forEach(obj => {
+                        // prefer an explicit reference_url (generated by Jekyll). Fall back to objectid if needed.
+                        var itemUrl = '#';
+                        var oid = null;
+                        if (obj.properties && obj.properties.reference_url) {
+                            itemUrl = toAbsoluteUrl(obj.properties.reference_url);
+                        } else if (obj.properties && (obj.properties.objectid || obj.properties.ObjectID)) {
+                            oid = obj.properties.objectid || obj.properties.ObjectID;
+                            itemUrl = toAbsoluteUrl('/items/' + encodeURIComponent(oid) + '.html');
+                        }
+                        var titleText = (obj.properties && (obj.properties.title || obj.properties.display_name)) || oid || 'View item';
+                        popupHTML += `\n                    <li style="margin-bottom:6px;">\n                        <strong><a href="${itemUrl}" target="_blank" style="color:#0066cc;">${titleText}</a></strong>\n                    </li>`;
+                    });
+                    popupHTML += `</ul>`;
+                    popupHTML += `
+                <div style="margin-top:8px; text-align:center;">
+                    <a href="/browse.html#district:${encodeURIComponent(districtName)}"
+                       target="_blank"
+                       class="btn btn-sm btn-primary"
+                       style="background:#0066cc; border:none; color:white; padding:4px 10px; border-radius:4px; text-decoration:none;">
+                       See More
+                    </a>
+                </div>`;
+                } else {
+                    popupHTML += `<p>No related maps found.</p>`;
+                }
+
+                layer.bindPopup(popupHTML);
+            }
+
+            // Add mining district polygons with labels and interactive highlighting
+            var defaultDistrictStyle = {
                 color: "#ff7800",
                 weight: 2,
-                opacity: 0.65
-            }
-        }).addTo(map);
+                opacity: 0.65,
+                fillOpacity: 0.15
+            };
 
+            var selectedLayer = null;
+            var districtLayer = L.geoJson(miningDistricts, {
+                style: defaultDistrictStyle,
+                onEachFeature: function (feature, layer) {
+                    var districtName = feature.properties.NAME || feature.properties.name || "Unknown District";
+
+                    // Bind the popup with the maps
+                    districtPopup(feature, layer);
+
+                    // Add label (tooltip) for the district name
+                    layer.bindTooltip(districtName, {
+                        permanent: false,
+                        direction: "center",
+                        className: "district-label"
+                    });
+
+                    // Highlighting behavior
+                    layer.on({
+                        mouseover: function (e) {
+                            var l = e.target;
+                            if (l !== selectedLayer) {
+                                l.setStyle({ weight: 3, fillOpacity: 0.45 });
+                                if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+                                    l.bringToFront();
+                                }
+                            }
+                        },
+                        mouseout: function (e) {
+                            var l = e.target;
+                            if (l !== selectedLayer) {
+                                districtLayer.resetStyle(l);
+                            }
+                        },
+                        click: function (e) {
+                            var l = e.target;
+                            if (selectedLayer && selectedLayer !== l) {
+                                districtLayer.resetStyle(selectedLayer);
+                            }
+                            selectedLayer = l;
+                            selectedLayer.setStyle({ weight: 3, fillOpacity: 0.6 });
+                            // open popup on click
+                            l.openPopup();
+                        }
+                    });
+                }
+            }).addTo(map);
+
+            // Add item markers from generated geojson data (if any)
+            try {
+                var markerLayer;
+                {% if site.data.theme.map - cluster == true %}
+                markerLayer = L.markerClusterGroup();
+                {% else %}
+                markerLayer = L.layerGroup();
+                {% endif %}
+
+                if (window.geojsonData && window.geojsonData.features && window.geojsonData.features.length) {
+                    window.geojsonData.features.forEach(function (feat) {
+                        if (!feat.geometry || feat.geometry.type !== 'Point') return;
+                        var coords = feat.geometry.coordinates;
+                        var lng = coords[0];
+                        var lat = coords[1];
+                        var props = feat.properties || {};
+                        var title = props.title || props.display_name || '';
+                        var objectid = props.objectid || props.ObjectID || null;
+                        var ref = '#';
+                        if (props && props.reference_url) {
+                            ref = toAbsoluteUrl(props.reference_url);
+                        } else if (objectid) {
+                            ref = toAbsoluteUrl('{{ "/items/" | relative_url }}' + objectid + '.html');
+                        }
+
+                        // build popup content
+                        var popup = '<div style="max-width:220px;">';
+                        if (props.object_thumb) {
+                            popup += '<div style="text-align:center;margin-bottom:6px;"><img src="' + props.object_thumb + '" style="max-width:100%;height:auto;" alt="' + (title || '') + '"></div>';
+                        }
+                        popup += '<strong><a href="' + ref + '" target="_blank">' + (title || '') + '</a></strong>';
+                        if (props.location) popup += '<div style="font-size:90%;">' + (props.location || '') + '</div>';
+                        popup += '</div>';
+
+                        var m = L.marker([lat, lng]);
+                        m.bindPopup(popup);
+                        markerLayer.addLayer(m);
+                    });
+                    markerLayer.addTo(map);
+                }
+            } catch (e) {
+                console.warn('Error creating markers from geojsonData:', e);
+            }
+        }
+
+        // Fetch generated geodata.json (created by Jekyll from _data) and store as window.geojsonData
+        var geoDataUrl = '{{ "/assets/data/geodata.json" | relative_url }}';
+        fetch(geoDataUrl)
+            .then(function (resp) { if (!resp.ok) throw new Error('Network response was not ok'); return resp.json(); })
+            .then(function (json) {
+                window.geojsonData = json;
+            })
+            .catch(function (err) {
+                // if fetch fails, fall back to an empty geojsonData
+                console.warn('Could not load geodata.json:', err);
+                window.geojsonData = { type: 'FeatureCollection', features: [] };
+            })
+            .finally(function () {
+                initMap();
+            });
 
     })();
 </script>
