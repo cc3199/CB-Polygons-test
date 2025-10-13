@@ -122,9 +122,12 @@
                         popupHTML += `\n                    <li style="margin-bottom:6px;">\n                        <strong><a href="${itemUrl}" target="_blank" style="color:#0066cc;">${titleText}</a></strong>\n                    </li>`;
                     });
                     popupHTML += `</ul>`;
+                    // build See More link using Jekyll's relative_url so GitHub Pages baseurl is included
+                    var browseBase = '{{ "/browse.html" | relative_url }}';
+                    var seeMoreHref = toAbsoluteUrl(browseBase + '#district:' + encodeURIComponent(districtName));
                     popupHTML += `
                 <div style="margin-top:8px; text-align:center;">
-                    <a href="/browse.html#district:${encodeURIComponent(districtName)}"
+                    <a href="${seeMoreHref}"
                        target="_blank"
                        class="btn btn-sm btn-primary"
                        style="background:#0066cc; border:none; color:white; padding:4px 10px; border-radius:4px; text-decoration:none;">
