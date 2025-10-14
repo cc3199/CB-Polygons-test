@@ -22,16 +22,16 @@
 </style>
 
 
-<script src="{{ '/assets/lib/leaflet/leaflet.js' | absolute_url }}"></script>
+<script src="{{ '/assets/lib/leaflet/leaflet.js' | relative_url }}"></script>
 {% if site.data.theme.map-search == true %}
-<script src="{{ '/assets/lib/leaflet/fuse.min.js' | absolute_url }}"></script>
-<script src="{{ '/assets/lib/leaflet/leaflet.fusesearch.js' | absolute_url }}"></script>
+<script src="{{ '/assets/lib/leaflet/fuse.min.js' | relative_url }}"></script>
+<script src="{{ '/assets/lib/leaflet/leaflet.fusesearch.js' | relative_url }}"></script>
 {% endif %}
 {% if site.data.theme.map-cluster == true %}
-<script src="{{ '/assets/lib/leaflet/leaflet.markercluster.js' | absolute_url }}"></script>
+<script src="{{ '/assets/lib/leaflet/leaflet.markercluster.js' | relative_url }}"></script>
 {% endif %}
 {% if site.data.theme.map-search == true and site.data.theme.map-cluster == true %}
-<script src="{{ '/assets/lib/leaflet/leaflet.markercluster.freezable.js' | absolute_url }}"></script>
+<script src="{{ '/assets/lib/leaflet/leaflet.markercluster.freezable.js' | relative_url }}"></script>
 {% endif %}
 <script src="{{ '/assets/js/MiningDistricts_Polygons.js' | relative_url }}"></script>
 <!-- map metadata will be loaded from the Jekyll-generated JSON so it stays in sync with _data CSVs -->
