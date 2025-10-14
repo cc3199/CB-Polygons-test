@@ -10,7 +10,7 @@
 # site domain, full URL to the production location of your collection
 url: 
 # path to location on the domain if necessary e.g. /digital/hjccc
-baseurl: 
+baseurl: /Information/Collections/Mine-Files/Beaverhead-Polygons
 # location of code, the full url to your github repository
 source-code: https://github.com/CollectionBuilder/collectionbuilder-csv
 
@@ -53,7 +53,7 @@ metadata: "beaverhead_polygons"
 organization-name: "Montana Bureau of Mines and Geology"
 organization-link: https://www.mbmg.mtech.edu
 organization-logo-banner: assets/img/MBMG_logo_2024_transparent_background.png
-organization-logo-nav: assets/img/logombmg.png
+organization-logo-nav: assets/img/MBMG logo 2024-white state.png
 
 ##########
 # GOOGLE SERVICES [optional!]
