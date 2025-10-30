@@ -40,3 +40,15 @@ CollectionBuilder documentation and general web content is licensed [Creative Co
 This license does *NOT* include any objects or images used in digital collections, which may have individually applied licenses described by a "rights" field.
 CollectionBuilder code is licensed [MIT](https://github.com/CollectionBuilder/collectionbuilder-csv/blob/master/LICENSE). 
 This license does not include external dependencies included in the `assets/lib` directory, which are covered by their individual licenses.
+
+## Esri (ArcGIS) map option
+
+This project includes an optional ArcGIS API for JavaScript initializer that can be enabled when you prefer Esri maps instead of the default Leaflet maps.
+
+- Enable: set `map_provider: esri` in `_data/theme.yml` (or set `window.mapProvider = 'esri'` at runtime) to opt in.
+- Polygons: district polygons are loaded from `assets/js/MiningDistricts_Polygons.js` (global `miningDistricts`). The code builds an Esri `GraphicsLayer` from those features so each graphic preserves the original properties (including a normalized `name`) used by hover labels and popups.
+- Points: item point markers are sourced from the Jekyll-generated `assets/data/geodata.json`. The Esri initializer filters that file to point features and creates a GeoJSONLayer for clustering and popups.
+- Tiles: the Esri initializer uses OpenStreetMap tiles (no Esri API key required).
+- Popups: polygon popups list up to 5 random related items and include a "See More" link to the browse page. Links use Jekyll's `relative_url` so they respect `baseurl`.
+
+If you want the site to always use Leaflet, leave `map_provider` unset or set it to a non-`esri` value.
