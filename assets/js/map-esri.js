@@ -2,8 +2,10 @@ require([
     "esri/Map",
     "esri/views/MapView",
     "esri/Graphic",
-    "esri/layers/GraphicsLayer"
-], function (Map, MapView, Graphic, GraphicsLayer) {
+    "esri/layers/GraphicsLayer",
+    "esri/widgets/BasemapGallery",
+    "esri/widgets/Expand"
+], function (Map, MapView, Graphic, GraphicsLayer, BasemapGallery, Expand) {
 
     // 1️⃣ Create the map
     const map = new Map({
@@ -14,7 +16,7 @@ require([
     const view = new MapView({
         container: "map",
         map: map,
-        center: [-113.08, 45.16], // adjust as needed
+        center: [-113.08, 45.16],
         zoom: 8
     });
 
@@ -24,7 +26,7 @@ require([
     const graphicsLayer = new GraphicsLayer();
     map.add(graphicsLayer);
 
-    // 4️⃣ Add polygons from your MiningDistricts_Polygons.js
+    // 4️⃣ Add polygons
     if (window.miningDistricts?.features?.length) {
         window.miningDistricts.features.forEach(f => {
             const graphic = new Graphic({
@@ -34,7 +36,6 @@ require([
                 },
                 attributes: {
                     NAME: f.properties.NAME || f.properties.name || "Unknown District",
-                    // Keep original properties for modal lookup
                     properties: f.properties
                 },
                 symbol: {
@@ -60,18 +61,13 @@ require([
     tooltipDiv.style.zIndex = 9999;
     document.body.appendChild(tooltipDiv);
 
-    // 6️⃣ Hover highlight & tooltip
+    // 6️⃣ Hover highlight
     let previousGraphic = null;
-
-    // Make sure tooltipDiv is attached to map container
-    view.container.appendChild(tooltipDiv); // only once
-
-    // Listen for pointer moves
     view.on("pointer-move", async function (event) {
         const hit = await view.hitTest(event);
         const graphic = hit.results.find(r => r.graphic && r.graphic.layer === graphicsLayer)?.graphic;
 
-        // Reset previous highlight if different
+        // Reset previous highlight
         if (previousGraphic && previousGraphic !== graphic) {
             previousGraphic.symbol = {
                 type: "simple-fill",
@@ -81,8 +77,8 @@ require([
             previousGraphic = null;
         }
 
+        // Highlight current polygon and show tooltip
         if (graphic) {
-            // Highlight current polygon
             graphic.symbol = {
                 type: "simple-fill",
                 color: [255, 200, 100, 0.8],
@@ -90,11 +86,11 @@ require([
             };
             previousGraphic = graphic;
 
-            // Position tooltip relative to cursor
-            const tooltipOffset = 15;
+            // Position tooltip near cursor
+            const offset = 15;
             tooltipDiv.innerText = graphic.attributes.NAME || "Unknown";
-            tooltipDiv.style.left = event.x + tooltipOffset + "px";
-            tooltipDiv.style.top = event.y + tooltipOffset + "px";
+            tooltipDiv.style.left = event.native.x + offset + "px";
+            tooltipDiv.style.top = event.native.y + offset + "px";
             tooltipDiv.style.display = "block";
         } else {
             tooltipDiv.style.display = "none";
@@ -111,9 +107,14 @@ require([
         }
     });
 
-    // 8️⃣ Basemap gallery (optional)
-    const basemapGalleryEl = document.createElement("arcgis-basemap-gallery");
-    basemapGalleryEl.setAttribute("data-view-id", "mapView");
-    basemapGalleryEl.style.cssText = "position:absolute;top:10px;right:10px;width:280px;height:400px;z-index:50;";
-    document.body.appendChild(basemapGalleryEl);
+    // 8️⃣ Basemap switcher using BasemapGallery widget
+    const basemapGallery = new BasemapGallery({ view: view });
+    const bgExpand = new Expand({
+        view: view,
+        content: basemapGallery,
+        expandIconClass: "esri-icon-basemap", // uses built-in basemap icon
+        expandTooltip: "Change Basemap"
+    });
+    view.ui.add(bgExpand, "top-right"); // top-right inside map view
+
 });
