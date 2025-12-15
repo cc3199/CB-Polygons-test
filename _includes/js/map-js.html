@@ -266,6 +266,9 @@
 
         window._browseBase = '{{ "/browse.html" | relative_url }}';
         window._itemsBase = '{{ "/items/" | relative_url }}';
+        window.embedUrl = "{{ site.data.theme.embed_url | default: '' }}";
+        window.fullMapUrl = "{{ site.data.theme.full_map_url | default: '' }}";
+        window.embedTitle = "{{ site.data.theme.embed_title | default: 'Embedded Map' }}";
 
         // Load geodata
         fetch('{{ "/assets/data/geodata.json" | relative_url }}')
@@ -286,7 +289,7 @@
                     }
                     next();
                 }
-
+                // Load the web app here
                 if (window.mapProvider === 'esri') {
                     if (!document.querySelector('link[href*="js.arcgis.com"][href*="main.css"]'))
                         document.head.insertAdjacentHTML('beforeend', '<link rel="stylesheet" href="https://js.arcgis.com/4.33/esri/themes/light/main.css">');
@@ -299,6 +302,8 @@
                     } else loadScripts(['{{ "/assets/js/MiningDistricts_Polygons.js" | relative_url }}'], () =>
                         loadScripts(['{{ "/assets/js/map-esri.js" | relative_url }}'])
                     );
+                } else if (window.mapProvider === 'embed') {
+                    document.getElementById('map').innerHTML = '<div style="position:relative;width:100%;height:100%;"><iframe width="100%" height="100%" allow="local-network-access allowfullscreen; geolocation" title="' + window.embedTitle + '" src="' + window.embedUrl + '" ></iframe><a href="' + window.fullMapUrl + '" target="_blank" style="position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.8);padding:8px 12px;border:1px solid #ccc;border-radius:4px;text-decoration:none;color:#333;font-size:14px;z-index:1000;">View on MBMG GIS Data Hub</a></div>';
                 } else {
                     loadScripts([
                         '{{ "/assets/lib/leaflet/leaflet.js" | relative_url }}',
