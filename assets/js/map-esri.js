@@ -7,12 +7,12 @@ require([
     "esri/widgets/Expand"
 ], function (Map, MapView, Graphic, GraphicsLayer, BasemapGallery, Expand) {
 
-    // 1️⃣ Create the map
+    // Create the map
     const map = new Map({
         basemap: "topo-vector"
     });
 
-    // 2️⃣ Create the view
+    // Create the view
     const view = new MapView({
         container: "map",
         map: map,
@@ -22,11 +22,11 @@ require([
 
     window._cbPolygonsEsriView = view;
 
-    // 3️⃣ Create a GraphicsLayer for your polygons
+    // Create a GraphicsLayer for your polygons
     const graphicsLayer = new GraphicsLayer();
     map.add(graphicsLayer);
 
-    // 4️⃣ Add polygons
+    // Add polygons
     if (window.miningDistricts?.features?.length) {
         window.miningDistricts.features.forEach(f => {
             const graphic = new Graphic({
@@ -48,7 +48,7 @@ require([
         });
     }
 
-    // 5️⃣ Tooltip div
+    // Tooltip div
     const tooltipDiv = document.createElement("div");
     tooltipDiv.style.position = "absolute";
     tooltipDiv.style.pointerEvents = "none";
@@ -61,7 +61,7 @@ require([
     tooltipDiv.style.zIndex = 9999;
     document.body.appendChild(tooltipDiv);
 
-    // 6️⃣ Hover highlight
+    // Hover highlight
     let previousGraphic = null;
     view.on("pointer-move", async function (event) {
         const hit = await view.hitTest(event);
@@ -97,7 +97,7 @@ require([
         }
     });
 
-    // 7️⃣ Click to open modal
+    // Click to open modal
     view.on("click", async function (event) {
         const hit = await view.hitTest(event);
         const graphic = hit.results.find(r => r.graphic && r.graphic.layer === graphicsLayer)?.graphic;
@@ -107,7 +107,7 @@ require([
         }
     });
 
-    // 8️⃣ Basemap switcher using BasemapGallery widget
+    // Basemap switcher using BasemapGallery widget
     const basemapGallery = new BasemapGallery({ view: view });
     const bgExpand = new Expand({
         view: view,
