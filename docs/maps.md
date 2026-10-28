@@ -40,6 +40,19 @@ Because of the way markers are handled, for larger collections it is strongly su
 The `map-cluster-radius` sets the maximum radius a cluster can cover in pixels on the map.
 A smaller radius will create more, smaller clusters, and increasing will create fewer, larger clusters on the map.
 
+## Reusing the polygon overlay
+
+The polygon overlay uses a GeoJSON `FeatureCollection` assigned to `mapPolygons` in `assets/js/map-polygons.js`. Each feature should have a `Polygon` or `MultiPolygon` geometry and a display name in `properties.name` (or `NAME` / `display_name`). The map automatically fits its initial view to the polygon bounds.
+
+For a CollectionBuilder template that does not already include this implementation, copy:
+
+- `assets/js/map-polygons.js` with your GeoJSON features.
+- `assets/js/map-leaflet.js` for Leaflet, or `assets/js/map-esri.js` for ArcGIS.
+- `_includes/js/map-js.html` and `_layouts/map.html` for the map page integration.
+- A map page such as `pages/map.md` with `layout: map`.
+
+Set `polygon-data-file` in `_data/theme.yml` to the polygon data filename in `assets/js` (default: `map-polygons.js`). Set `polygon-item-match-field` to a metadata field whose values match polygon names to list related items in polygon popups; omit it if no item-to-polygon relationship is needed. The Leaflet version uses the Leaflet assets already included in CollectionBuilder. The ArcGIS version loads the ArcGIS API from Esri's CDN.
+
 ## map-config.csv Options
 
 The metadata displayed on object popups and included in search is configured using using "_data/map-config.csv":

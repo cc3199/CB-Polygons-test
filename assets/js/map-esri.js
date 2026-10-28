@@ -16,8 +16,8 @@ require([
     const view = new MapView({
         container: "map",
         map: map,
-        center: [-113.08, 45.16],
-        zoom: 8
+        center: [0, 0],
+        zoom: 2
     });
 
     window._cbPolygonsEsriView = view;
@@ -27,16 +27,18 @@ require([
     map.add(graphicsLayer);
 
     // Add polygons
-    if (window.miningDistricts?.features?.length) {
-        window.miningDistricts.features.forEach(f => {
+    const polygonSource = window.mapPolygons;
+    if (polygonSource?.features?.length) {
+        polygonSource.features.forEach(f => {
+            const properties = f.properties || {};
             const graphic = new Graphic({
                 geometry: {
                     type: "polygon",
-                    rings: f.geometry.coordinates
+                    rings: f.geometry.type === "MultiPolygon" ? f.geometry.coordinates.flat() : f.geometry.coordinates
                 },
                 attributes: {
-                    NAME: f.properties.NAME || f.properties.name || "Unknown District",
-                    properties: f.properties
+                    NAME: properties.name || properties.NAME || properties.display_name || "Map Feature",
+                    properties: properties
                 },
                 symbol: {
                     type: "simple-fill",
@@ -46,6 +48,7 @@ require([
             });
             graphicsLayer.add(graphic);
         });
+        view.goTo(graphicsLayer.graphics.toArray()).catch(() => { });
     }
 
     // Tooltip div
@@ -102,7 +105,7 @@ require([
         const hit = await view.hitTest(event);
         const graphic = hit.results.find(r => r.graphic && r.graphic.layer === graphicsLayer)?.graphic;
         if (graphic) {
-            const modalContent = window.buildDistrictHtml(graphic.attributes);
+            const modalContent = window.buildPolygonHtml(graphic.attributes);
             window.openModal(modalContent.html, modalContent.title);
         }
     });

@@ -1,0 +1,319 @@
+﻿<style>
+    /* Map tooltip */
+    .leaflet-tooltip.district-label {
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        font-weight: bold;
+        color: #333;
+        text-shadow: 1px 1px 2px white;
+        font-size: 14px;
+    }
+
+    /* Map container */
+    #map {
+        position: relative;
+        width: 100%;
+        height: 80vh;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+    }
+
+    /* Esri/Leaflet container fixes */
+    .esri-view,
+    .esri-view-root,
+    .esri-ui,
+    .esri-view-surface {
+        max-width: 100%;
+        max-height: 100%;
+        overflow: hidden !important;
+    }
+
+    .esri-ui {
+        position: absolute !important;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+    }
+
+    .esri-view-root {
+        z-index: 10;
+    }
+
+    /* Modal */
+    #map-modal-backdrop {
+        position: fixed;
+        left: 0;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.45);
+        z-index: 2147483646;
+        padding: 20px;
+    }
+
+    #map-modal {
+        max-width: 900px;
+        width: 100%;
+        background: #fff;
+        border-radius: 6px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+        overflow: auto;
+        max-height: calc(100vh - 80px);
+        position: relative;
+        padding: 18px;
+    }
+
+    .map-modal-content {
+        font-size: 15px;
+        color: #222;
+    }
+
+    .map-modal-title {
+        margin: 0 0 8px 0;
+        font-size: 20px;
+    }
+
+    .map-modal-close {
+        position: absolute;
+        right: 8px;
+        top: 8px;
+        background: transparent;
+        border: none;
+        font-size: 24px;
+        line-height: 1;
+        cursor: pointer;
+        color: #444;
+    }
+
+    .map-modal-close:focus {
+        outline: 2px solid #3b82f6;
+    }
+</style>
+
+<script>
+    (function () {
+        // Helpers
+        function toAbsoluteUrl(u) {
+            if (!u) return '#';
+            try {
+                if (/^https?:\/\//i.test(u)) return u;
+                if (u.indexOf('//') === 0) return window.location.protocol + u;
+                if (u.charAt(0) === '/') return window.location.origin + u;
+                return new URL(u, window.location.href).href;
+            } catch (e) { return u; }
+        }
+
+        function safeThumb(u) {
+            if (!u) return '';
+            try {
+                var s = toAbsoluteUrl(u);
+                if (s.includes('+') || s.includes('props.object_thumb') || s.indexOf('{' + '{') !== -1) return '';
+                return s;
+            } catch (e) { return ''; }
+        }
+
+        // Modal
+        var _modal = null, _backdrop = null, _lastFocus = null;
+        function _ensureModal() {
+            if (_modal && _backdrop) return;
+            _backdrop = document.createElement('div');
+            _backdrop.id = 'map-modal-backdrop';
+            _backdrop.style.display = 'none';
+            _backdrop.setAttribute('aria-hidden', 'true');
+
+            _modal = document.createElement('div');
+            _modal.id = 'map-modal';
+            _modal.setAttribute('role', 'dialog');
+            _modal.setAttribute('aria-modal', 'true');
+            _modal.tabIndex = -1;
+
+            var closeBtn = document.createElement('button');
+            closeBtn.className = 'map-modal-close';
+            closeBtn.innerHTML = '&times;';
+            closeBtn.setAttribute('aria-label', 'Close details');
+            closeBtn.addEventListener('click', closeModal);
+            _modal.appendChild(closeBtn);
+
+            var content = document.createElement('div');
+            content.className = 'map-modal-content';
+            _modal.appendChild(content);
+
+            _backdrop.appendChild(_modal);
+            document.body.appendChild(_backdrop);
+
+            _backdrop.addEventListener('click', e => { if (e.target === _backdrop) closeModal(); });
+            document.addEventListener('keydown', e => { if (e.key === 'Escape' && _backdrop.style.display !== 'none') closeModal(); });
+        }
+
+        function openModal(html, title) {
+            _ensureModal();
+            if (window._cbPolygonsMap?.closePopup) window._cbPolygonsMap.closePopup();
+            if (window._cbPolygonsEsriView?.popup) window._cbPolygonsEsriView.popup.close();
+
+            _backdrop.style.display = 'flex';
+            _backdrop.setAttribute('aria-hidden', 'false');
+            var content = _modal.querySelector('.map-modal-content');
+            content.innerHTML = '';
+
+            if (title) {
+                var h = document.createElement('h2');
+                h.className = 'map-modal-title';
+                h.innerText = title;
+                content.appendChild(h);
+            }
+
+            if (typeof html === 'string') {
+                var wrap = document.createElement('div');
+                wrap.innerHTML = html;
+                content.appendChild(wrap);
+            } else if (html instanceof Node) content.appendChild(html);
+
+            _lastFocus = document.activeElement;
+            _modal.focus();
+        }
+
+        function closeModal() {
+            if (!_backdrop) return;
+            _backdrop.style.display = 'none';
+            _backdrop.setAttribute('aria-hidden', 'true');
+            _lastFocus?.focus?.();
+        }
+
+        window.toAbsoluteUrl = toAbsoluteUrl;
+        window.safeThumb = safeThumb;
+        window.openModal = openModal;
+        window.closeModal = closeModal;
+
+        // District modal builder
+        function buildDistrictHtml(input) {
+            var props = input?.properties || input || {};
+            var districtName = props.NAME || props.name || props.display_name || 'Unknown District';
+            var objectsInDistrict = window.geojsonData?.features?.filter(f => {
+                if (!f.properties) return false;
+                var d = f.properties.district || f.properties.mining_district || f.properties['mining district'] || f.properties.MiningDistrict || f.properties.miningDistrict;
+                if (!d) return false;
+                var arr = String(d).split(/;|,/).map(s => s.trim().toLowerCase());
+                return arr.includes(districtName.toLowerCase());
+            }) || [];
+
+            if (objectsInDistrict.length > 5) objectsInDistrict = objectsInDistrict.sort(() => 0.5 - Math.random()).slice(0, 5);
+
+            var html = `<div style="max-width:520px;"><h3 style="margin-top:0;">${districtName}</h3>`;
+            if (objectsInDistrict.length > 0) {
+                html += '<ul style="padding-left:15px;margin:0;">';
+                objectsInDistrict.forEach(obj => {
+                    var url = '#', oid = null;
+                    if (obj.properties?.reference_url) url = toAbsoluteUrl(obj.properties.reference_url);
+                    else if (obj.properties?.objectid || obj.properties?.ObjectID) {
+                        oid = obj.properties.objectid || obj.properties.ObjectID;
+                        url = toAbsoluteUrl(window._itemsBase + oid + '.html');
+                    }
+                    var titleText = obj.properties?.title || obj.properties?.display_name || oid || 'View item';
+                    var thumbHtml = '';
+                    try {
+                        var t = obj.properties?.object_thumb || obj.properties?.object_thumb_url || obj.properties?.thumb || obj.properties?.thumbnail;
+                        if (t) {
+                            var s = safeThumb(t);
+                            if (s) thumbHtml = `<div style="width:140px;flex:0 0 140px;margin-right:12px;text-align:center;display:flex;align-items:center;justify-content:center;">
+                            <a href="${url}" target="_blank">
+                                <img src="${s}" alt="${titleText || ''}" style="max-width:140px;width:100%;height:auto;border-radius:4px;display:block;"/>
+                            </a>
+                        </div>`;
+                        }
+                    } catch (e) { }
+                    html += `<li style="margin-bottom:10px;display:flex;align-items:center;">${thumbHtml}<div style="flex:1;"><strong><a href="${url}" target="_blank" style="color:#0066cc;">${titleText}</a></strong></div></li>`;
+                });
+                html += '</ul>';
+                html += `<div style="margin-top:12px;text-align:center;">
+                <a href="${toAbsoluteUrl(window._browseBase + '#district:' + encodeURIComponent(districtName))}" target="_blank" class="btn btn-primary" style="background:#0066cc;border:none;color:white;padding:10px 16px;border-radius:6px;font-size:16px;text-decoration:none;display:inline-block;">See More</a>
+            </div>`;
+            } else html += '<p>No related maps found.</p>';
+            html += '</div>';
+            return { html, title: districtName };
+        }
+
+        function buildPointModal(attrs) {
+            var a = attrs || {};
+            var thumb = '';
+            try {
+                var t = a.object_thumb || a.object_thumb_url || a.thumb || a.thumbnail;
+                if (t) { var s = safeThumb(t); if (s) thumb = `<div style="text-align:center;margin-bottom:6px;"><img src="${s}" style="max-width:100%;height:auto;" alt="${a.title || ''}"/></div>`; }
+            } catch (e) { }
+            var ref = a.reference_url ? a.reference_url : (a.objectid ? window._itemsBase + a.objectid + '.html' : '#');
+            var title = a.title || a.display_name || ref;
+            var loc = a.location ? `<div style="font-size:90%;">${a.location}</div>` : '';
+            return { html: thumb + `<strong><a href="${toAbsoluteUrl(ref)}" target="_blank">${title}</a></strong>` + loc, title };
+        }
+
+        window.buildDistrictHtml = buildDistrictHtml;
+        window.buildPointModal = buildPointModal;
+
+        // Config from Jekyll
+        window.mapProvider = "{{ site.data.theme.map_provider | default: '' }}";
+        // coerce the templated value into a proper boolean at runtime; keeping the template inside a string
+        // prevents syntax errors in editors before Jekyll renders the file.
+        window._mapUseCluster = (function (v) {
+            try { return JSON.parse(String(v)); }
+            catch (e) { return v === 'true' || v === true || false; }
+        })("{{ site.data.theme['map-cluster'] | default: false | jsonify }}");
+
+        window._browseBase = '{{ "/browse.html" | relative_url }}';
+        window._itemsBase = '{{ "/items/" | relative_url }}';
+        window.embedUrl = "{{ site.data.theme.embed_url | default: '' }}";
+        window.fullMapUrl = "{{ site.data.theme.full_map_url | default: '' }}";
+        window.embedTitle = "{{ site.data.theme.embed_title | default: 'Embedded Map' }}";
+
+        // Load geodata
+        fetch('{{ "/assets/data/geodata.json" | relative_url }}')
+            .then(r => r.ok ? r.json() : Promise.reject('Failed'))
+            .then(json => window.geojsonData = json)
+            .catch(e => { console.warn('Could not load geodata.json:', e); window.geojsonData = { type: 'FeatureCollection', features: [] }; })
+            .finally(() => {
+                function loadScripts(urls, cb) {
+                    let i = 0;
+                    function next() {
+                        if (i >= urls.length) return cb?.();
+                        let src = urls[i++];
+                        if (document.querySelector('script[src="' + src + '"]')) return next();
+                        var s = document.createElement('script');
+                        s.src = src; s.async = false; s.defer = false; s.onload = next;
+                        s.onerror = () => { console.warn('Failed to load', src); next(); };
+                        document.body.appendChild(s);
+                    }
+                    next();
+                }
+                // Load the web app here
+                if (window.mapProvider === 'esri') {
+                    if (!document.querySelector('link[href*="js.arcgis.com"][href*="main.css"]'))
+                        document.head.insertAdjacentHTML('beforeend', '<link rel="stylesheet" href="https://js.arcgis.com/4.33/esri/themes/light/main.css">');
+                    if (typeof require === 'undefined') {
+                        loadScripts(['https://js.arcgis.com/4.33/'], () => {
+                            loadScripts(['{{ "/assets/js/MiningDistricts_Polygons.js" | relative_url }}'], () =>
+                                loadScripts(['{{ "/assets/js/map-esri.js" | relative_url }}'])
+                            );
+                        });
+                    } else loadScripts(['{{ "/assets/js/MiningDistricts_Polygons.js" | relative_url }}'], () =>
+                        loadScripts(['{{ "/assets/js/map-esri.js" | relative_url }}'])
+                    );
+                } else if (window.mapProvider === 'embed') {
+                    document.getElementById('map').innerHTML = '<div style="position:relative;width:100%;height:100%;"><iframe width="100%" height="100%" allow="local-network-access allowfullscreen; geolocation" title="' + window.embedTitle + '" src="' + window.embedUrl + '" ></iframe><a href="' + window.fullMapUrl + '" target="_blank" style="position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.8);padding:8px 12px;border:1px solid #ccc;border-radius:4px;text-decoration:none;color:#333;font-size:14px;z-index:1000;">View on MBMG GIS Data Hub</a></div>';
+                } else {
+                    loadScripts([
+                        '{{ "/assets/lib/leaflet/leaflet.js" | relative_url }}',
+                        '{{ "/assets/lib/leaflet/leaflet.markercluster.js" | relative_url }}',
+                        '{{ "/assets/lib/leaflet/Leaflet.fullscreen.min.js" | relative_url }}',
+                        '{{ "/assets/lib/leaflet/leaflet.fusesearch.js" | relative_url }}',
+                        '{{ "/assets/js/MiningDistricts_Polygons.js" | relative_url }}',
+                        '{{ "/assets/js/map-leaflet.js" | relative_url }}'
+                    ]);
+                }
+            });
+    })();
+</script>

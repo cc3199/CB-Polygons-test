@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
     // Normalize window.miningDistricts in-place: ensure rings are proper arrays and closed
     try {
         if (!window || !window.miningDistricts || !window.miningDistricts.features) return;

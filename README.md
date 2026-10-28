@@ -41,14 +41,8 @@ This license does *NOT* include any objects or images used in digital collection
 CollectionBuilder code is licensed [MIT](https://github.com/CollectionBuilder/collectionbuilder-csv/blob/master/LICENSE). 
 This license does not include external dependencies included in the `assets/lib` directory, which are covered by their individual licenses.
 
-## Esri (ArcGIS) map option
+## Polygon map overlay
 
-This project includes an optional ArcGIS API for JavaScript initializer that can be enabled when you prefer Esri maps instead of the default Leaflet maps.
+The polygon overlay is separate from CollectionBuilder's item-map data. It loads a GeoJSON `FeatureCollection` from `assets/js/map-polygons.js`, exposed as `mapPolygons`, and can render with Leaflet or the optional ArcGIS JavaScript API.
 
-- Enable: set `map_provider: esri` in `_data/theme.yml` (or set `window.mapProvider = 'esri'` at runtime) to opt in.
-- Polygons: district polygons are loaded from `assets/js/MiningDistricts_Polygons.js` (global `miningDistricts`). The code builds an Esri `GraphicsLayer` from those features so each graphic preserves the original properties (including a normalized `name`) used by hover labels and popups.
-- Points: item point markers are sourced from the Jekyll-generated `assets/data/geodata.json`. The Esri initializer filters that file to point features and creates a GeoJSONLayer for clustering and popups.
-- Tiles: the Esri initializer uses OpenStreetMap tiles (no Esri API key required).
-- Popups: polygon popups list up to 5 random related items and include a "See More" link to the browse page. Links use Jekyll's `relative_url` so they respect `baseurl`.
-
-If you want the site to always use Leaflet, leave `map_provider` unset or set it to a non-`esri` value.
+To reuse the overlay in another collection, copy `assets/js/map-polygons.js`, `assets/js/map-leaflet.js` (or `assets/js/map-esri.js`), `_includes/js/map-js.html`, and `_layouts/map.html`. Use a map page with `layout: map`. Set `polygon-data-file` in `_data/theme.yml` to the copied data filename. To show related collection items in polygon popups, set `polygon-item-match-field` to the metadata field whose value matches each feature's `properties.name`; omit it if polygons should not link to items. Keep the template's existing Leaflet libraries when using Leaflet.

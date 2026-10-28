@@ -1,6 +1,6 @@
 <style>
     /* Map tooltip */
-    .leaflet-tooltip.district-label {
+    .leaflet-tooltip.polygon-label {
         background: transparent;
         border: none;
         box-shadow: none;
@@ -191,24 +191,25 @@
         window.openModal = openModal;
         window.closeModal = closeModal;
 
-        // District modal builder
-        function buildDistrictHtml(input) {
+        // Polygon modal builder
+        function buildPolygonHtml(input) {
             var props = input?.properties || input || {};
-            var districtName = props.NAME || props.name || props.display_name || 'Unknown District';
-            var objectsInDistrict = window.geojsonData?.features?.filter(f => {
+            var polygonName = props.name || props.NAME || props.display_name || 'Map Feature';
+            var matchField = window.polygonItemMatchField;
+            var relatedItems = window.geojsonData?.features?.filter(f => {
                 if (!f.properties) return false;
-                var d = f.properties.district || f.properties.mining_district || f.properties['mining district'] || f.properties.MiningDistrict || f.properties.miningDistrict;
-                if (!d) return false;
-                var arr = String(d).split(/;|,/).map(s => s.trim().toLowerCase());
-                return arr.includes(districtName.toLowerCase());
+                var value = matchField ? f.properties[matchField] : null;
+                if (!value) return false;
+                var values = String(value).split(/;|,/).map(s => s.trim().toLowerCase());
+                return values.includes(String(polygonName).toLowerCase());
             }) || [];
 
-            if (objectsInDistrict.length > 5) objectsInDistrict = objectsInDistrict.sort(() => 0.5 - Math.random()).slice(0, 5);
+            if (relatedItems.length > 5) relatedItems = relatedItems.slice(0, 5);
 
-            var html = `<div style="max-width:520px;"><h3 style="margin-top:0;">${districtName}</h3>`;
-            if (objectsInDistrict.length > 0) {
+            var html = `<div style="max-width:520px;"><h3 style="margin-top:0;">${polygonName}</h3>`;
+            if (relatedItems.length > 0) {
                 html += '<ul style="padding-left:15px;margin:0;">';
-                objectsInDistrict.forEach(obj => {
+                relatedItems.forEach(obj => {
                     var url = '#', oid = null;
                     if (obj.properties?.reference_url) url = toAbsoluteUrl(obj.properties.reference_url);
                     else if (obj.properties?.objectid || obj.properties?.ObjectID) {
@@ -232,11 +233,11 @@
                 });
                 html += '</ul>';
                 html += `<div style="margin-top:12px;text-align:center;">
-                <a href="${toAbsoluteUrl(window._browseBase + '#district:' + encodeURIComponent(districtName))}" target="_blank" class="btn btn-primary" style="background:#0066cc;border:none;color:white;padding:10px 16px;border-radius:6px;font-size:16px;text-decoration:none;display:inline-block;">See More</a>
+                <a href="${toAbsoluteUrl(window._browseBase + '#' + encodeURIComponent(matchField) + ':' + encodeURIComponent(polygonName))}" target="_blank" class="btn btn-primary" style="background:#0066cc;border:none;color:white;padding:10px 16px;border-radius:6px;font-size:16px;text-decoration:none;display:inline-block;">See More</a>
             </div>`;
-            } else html += '<p>No related maps found.</p>';
+            } else html += '<p>No related items found.</p>';
             html += '</div>';
-            return { html, title: districtName };
+            return { html, title: polygonName };
         }
 
         function buildPointModal(attrs) {
@@ -252,8 +253,9 @@
             return { html: thumb + `<strong><a href="${toAbsoluteUrl(ref)}" target="_blank">${title}</a></strong>` + loc, title };
         }
 
-        window.buildDistrictHtml = buildDistrictHtml;
+        window.buildPolygonHtml = buildPolygonHtml;
         window.buildPointModal = buildPointModal;
+        window.polygonItemMatchField = "{{ site.data.theme['polygon-item-match-field'] | default: '' }}";
 
         // Config from Jekyll
         window.mapProvider = "{{ site.data.theme.map_provider | default: '' }}";
@@ -295,11 +297,11 @@
                         document.head.insertAdjacentHTML('beforeend', '<link rel="stylesheet" href="https://js.arcgis.com/4.33/esri/themes/light/main.css">');
                     if (typeof require === 'undefined') {
                         loadScripts(['https://js.arcgis.com/4.33/'], () => {
-                            loadScripts(['{{ "/assets/js/MiningDistricts_Polygons.js" | relative_url }}'], () =>
+                            loadScripts(['{{ site.data.theme["polygon-data-file"] | default: "map-polygons.js" | prepend: "/assets/js/" | relative_url }}'], () =>
                                 loadScripts(['{{ "/assets/js/map-esri.js" | relative_url }}'])
                             );
                         });
-                    } else loadScripts(['{{ "/assets/js/MiningDistricts_Polygons.js" | relative_url }}'], () =>
+                    } else loadScripts(['{{ site.data.theme["polygon-data-file"] | default: "map-polygons.js" | prepend: "/assets/js/" | relative_url }}'], () =>
                         loadScripts(['{{ "/assets/js/map-esri.js" | relative_url }}'])
                     );
                 } else if (window.mapProvider === 'embed') {
@@ -310,7 +312,7 @@
                         '{{ "/assets/lib/leaflet/leaflet.markercluster.js" | relative_url }}',
                         '{{ "/assets/lib/leaflet/Leaflet.fullscreen.min.js" | relative_url }}',
                         '{{ "/assets/lib/leaflet/leaflet.fusesearch.js" | relative_url }}',
-                        '{{ "/assets/js/MiningDistricts_Polygons.js" | relative_url }}',
+                        '{{ site.data.theme["polygon-data-file"] | default: "map-polygons.js" | prepend: "/assets/js/" | relative_url }}',
                         '{{ "/assets/js/map-leaflet.js" | relative_url }}'
                     ]);
                 }

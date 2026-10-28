@@ -1,4 +1,4 @@
-var miningDistricts = {
+﻿var miningDistricts = {
   "type": "FeatureCollection",
   "features": [
     {

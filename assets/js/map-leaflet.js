@@ -3,10 +3,10 @@
     try {
         if (window.mapProvider && window.mapProvider === 'esri') return; // don't run in Esri mode
 
-        // Use shared builder provided by map include: window.buildDistrictHtml(feature)
+        // Use shared builder provided by map include: window.buildPolygonHtml(feature)
 
         function initMap() {
-            var map = L.map('map').setView([45.16021327505953, -113.08185710423723], 8);
+            var map = L.map('map');
             window._cbPolygonsMap = map;
 
             var Esri_WorldStreetMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}');
@@ -21,27 +21,31 @@
             L.control.layers(baseMaps).addTo(map);
             Esri_WorldStreetMap.addTo(map);
 
-            var defaultDistrictStyle = { color: "#ff7800", weight: 2, opacity: 0.65, fillOpacity: 0.15 };
+            var defaultPolygonStyle = { color: "#ff7800", weight: 2, opacity: 0.65, fillOpacity: 0.15 };
             var selectedLayer = null;
+            var polygonSource = window.mapPolygons || { type: "FeatureCollection", features: [] };
 
-            var districtLayer = L.geoJson(miningDistricts, {
-                style: defaultDistrictStyle,
+            var polygonLayer = L.geoJson(polygonSource, {
+                style: defaultPolygonStyle,
                 onEachFeature: function (feature, layer) {
-                    var districtName = feature.properties.NAME || feature.properties.name || "Unknown District";
+                    var polygonName = feature.properties.name || feature.properties.NAME || feature.properties.display_name || "Map Feature";
                     layer.on('click', function () {
                         try {
-                            var built = (typeof window.buildDistrictHtml === 'function') ? window.buildDistrictHtml(feature) : { html: '', title: '' };
+                            var built = (typeof window.buildPolygonHtml === 'function') ? window.buildPolygonHtml(feature) : { html: '', title: '' };
                             openModal(built.html, built.title);
                         } catch (err) { console.warn('Open modal failed', err); }
                     });
-                    layer.bindTooltip(districtName, { permanent: false, direction: 'center', className: 'district-label' });
+                    layer.bindTooltip(polygonName, { permanent: false, direction: 'center', className: 'polygon-label' });
                     layer.on({
                         mouseover: function (e) { var l = e.target; if (l !== selectedLayer) { l.setStyle({ weight: 3, fillOpacity: 0.45 }); if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) l.bringToFront(); } },
-                        mouseout: function (e) { var l = e.target; if (l !== selectedLayer) districtLayer.resetStyle(l); },
-                        click: function (e) { var l = e.target; if (selectedLayer && selectedLayer !== l) districtLayer.resetStyle(selectedLayer); selectedLayer = l; selectedLayer.setStyle({ weight: 3, fillOpacity: 0.6 }); }
+                        mouseout: function (e) { var l = e.target; if (l !== selectedLayer) polygonLayer.resetStyle(l); },
+                        click: function (e) { var l = e.target; if (selectedLayer && selectedLayer !== l) polygonLayer.resetStyle(selectedLayer); selectedLayer = l; selectedLayer.setStyle({ weight: 3, fillOpacity: 0.6 }); }
                     });
                 }
             }).addTo(map);
+            var polygonBounds = polygonLayer.getBounds();
+            if (polygonBounds && polygonBounds.isValid()) map.fitBounds(polygonBounds);
+            else map.setView([0, 0], 2);
 
             // markers
             var markerLayer = window._mapUseCluster ? L.markerClusterGroup() : L.layerGroup();
