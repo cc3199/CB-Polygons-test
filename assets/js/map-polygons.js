@@ -1,3 +1,4 @@
+// This is example data for map polygons. Each feature represents a polygon with its coordinates specified in the GeoJSON format. Replace this with your own polygon data as needed.
 var mapPolygons = {
   "type": "FeatureCollection",
   "features": [
